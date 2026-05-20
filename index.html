@@ -1,0 +1,506 @@
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>十年砂時計 - by qa_a_aa</title>
+    <!-- 当時のターミナルフォントの代替としてDotGothic16を使用 -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #008080; /* Windows 95/98 ティールグリーン */
+            font-family: 'DotGothic16', monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            -webkit-font-smoothing: none;
+        }
+
+        /* アプリケーションウィンドウ */
+        .window {
+            width: 640px;
+            height: 460px;
+            background-color: #c0c0c0;
+            /* 3Dボーダー */
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        /* タイトルバー (グラデーション再現) */
+        .title-bar {
+            background: linear-gradient(to right, #000080, #1084d0);
+            color: #ffffff;
+            padding: 2px 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2px;
+            height: 22px;
+        }
+        .title-bar-text {
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 1px;
+        }
+        .dos-icon {
+            width: 16px;
+            height: 14px;
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 9px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #000;
+            line-height: 1;
+        }
+        .title-controls {
+            display: flex;
+            gap: 2px;
+        }
+        .title-controls button {
+            width: 16px;
+            height: 14px;
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            outline: none;
+        }
+        .title-controls button:active {
+            border-top: 1px solid #000000;
+            border-left: 1px solid #000000;
+            border-right: 1px solid #ffffff;
+            border-bottom: 1px solid #ffffff;
+            box-shadow: inset 1px 1px #808080;
+        }
+
+        /* MS-DOS プロンプト画面（黒背景） */
+        .client-area {
+            background-color: #000000;
+            flex-grow: 1;
+            margin: 0 2px 2px 2px;
+            border-top: 2px solid #808080;
+            border-left: 2px solid #808080;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            display: flex;
+            position: relative;
+        }
+
+        /* 左半分：砂時計キャンバスエリア */
+        .canvas-container {
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #hourglassCanvas {
+            /* 200x300のキャンバスをピクセル感を保ったまま拡大表示 */
+            transform: scale(1.4);
+            image-rendering: pixelated;
+        }
+
+        /* 右半分：テキストエリア */
+        .text-area {
+            width: 50%;
+            color: #ffffff;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            padding-top: 10px;
+        }
+
+        /* 配色再現 */
+        .cyan { color: #00ffff; }
+        .white { color: #ffffff; }
+
+        /* 画像と同じレイアウトの緻密な調整 */
+        .title-text { margin-bottom: 30px; }
+        .since-block { text-align: center; margin-bottom: 15px; }
+        .since-block div { margin-bottom: 2px; }
+        .arrow { font-size: 14px; margin-bottom: 25px; }
+        
+        /* 時間カウンタの桁揃え */
+        .time-block {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        .time-row {
+            display: flex;
+            width: 130px;
+            margin-bottom: 2px;
+        }
+        .time-val {
+            width: 35px;
+            text-align: right;
+            margin-right: 12px;
+        }
+        .time-unit {
+            width: 83px;
+            text-align: left;
+        }
+        
+        .passed-text { margin-bottom: 30px; }
+        .footer-text { margin-bottom: 10px; }
+
+        /* タスクバー */
+        .taskbar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 28px;
+            background-color: #c0c0c0;
+            border-top: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            z-index: 10;
+        }
+        .start-btn {
+            height: 22px;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            background-color: #c0c0c0;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 6px;
+            box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+        }
+        .start-icon {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            width: 12px;
+            height: 12px;
+        }
+        .start-icon div { width: 100%; height: 100%; }
+        .task-list {
+            flex-grow: 1;
+            margin-left: 4px;
+            display: flex;
+        }
+        .task-item {
+            height: 22px;
+            width: 140px;
+            background-color: #dfdfdf;
+            border-top: 2px solid #000000;
+            border-left: 2px solid #000000;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            box-shadow: inset 1px 1px #808080;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            padding-left: 4px;
+        }
+        .tray {
+            height: 22px;
+            border-top: 2px solid #808080;
+            border-left: 2px solid #808080;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ウィンドウ UI -->
+    <div class="window">
+        <!-- タイトルバー -->
+        <div class="title-bar">
+            <div class="title-bar-text">
+                <div class="dos-icon">C:\</div>
+                MS-DOS プロンプト
+            </div>
+            <div class="title-controls">
+                <button>_</button>
+                <button>🗖</button>
+                <button>✕</button>
+            </div>
+        </div>
+        
+        <!-- コンテンツエリア -->
+        <div class="client-area">
+            
+            <!-- 左側：砂時計描画 -->
+            <div class="canvas-container">
+                <canvas id="hourglassCanvas" width="200" height="300"></canvas>
+            </div>
+
+            <!-- 右側：テキスト（レイアウト完全再現） -->
+            <div class="text-area">
+                <div class="title-text white">[ 十年砂時計 ]</div>
+                
+                <div class="since-block">
+                    <div class="cyan">- since -</div>
+                    <div class="white">1996/5/19</div>
+                    <div class="white">22:25:34</div>
+                </div>
+                
+                <div class="arrow cyan">▼</div>
+                
+                <div class="time-block white">
+                    <div class="time-row"><div class="time-val" id="val-y">0</div><div class="time-unit">years</div></div>
+                    <div class="time-row"><div class="time-val" id="val-m">0</div><div class="time-unit">months</div></div>
+                    <div class="time-row"><div class="time-val" id="val-d">0</div><div class="time-unit">days</div></div>
+                    <div class="time-row"><div class="time-val" id="val-h">0</div><div class="time-unit">hours</div></div>
+                    <div class="time-row"><div class="time-val" id="val-i">0</div><div class="time-unit">minutes</div></div>
+                    <div class="time-row"><div class="time-val" id="val-s">0</div><div class="time-unit">seconds</div></div>
+                </div>
+                
+                <div class="passed-text cyan">- passed -</div>
+                
+                <div class="footer-text white">[DAISUKE & DDT-soft]</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows タスクバー -->
+    <div class="taskbar">
+        <div class="start-btn">
+            <div class="start-icon">
+                <div style="background:#ff3333"></div><div style="background:#33ff33"></div>
+                <div style="background:#3333ff"></div><div style="background:#ffff33"></div>
+            </div>
+            スタート
+        </div>
+        <div class="task-list">
+            <div class="task-item">
+                <div class="dos-icon" style="transform: scale(0.8); margin-right:4px;">C:\</div>
+                MS-DOS ﾌﾟﾛﾝﾌﾟﾄ
+            </div>
+        </div>
+        <div class="tray" id="taskbar-clock">23:45</div>
+    </div>
+
+    <script>
+        // 本家の設定時刻
+        const SINCE_DATE = new Date('1996-05-19T22:25:34+09:00');
+        
+        // 描画キャンバスのセットアップ
+        const canvas = document.getElementById('hourglassCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 砂を描画して良い「枠の内側」を判定するためのマスク配列
+        let sandMask = [];
+
+        // 砂時計の枠（ひょうたん型）を描く関数
+        // inflate: 枠の太さを調整（正の値で太く、0で基準サイズ）
+        function drawGlassShape(ctx, inflate) {
+            const w = 110 + inflate;
+            const cx = 100;
+            const topY = 30 - inflate/2;
+            const botY = 270 + inflate/2;
+            const neckW = 10 + inflate/2;
+            const neckY = 150;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, topY);
+            ctx.lineTo(cx + w/2, topY);
+            // 右側の曲線
+            ctx.bezierCurveTo(cx + w/2, topY + 60,  cx + neckW/2, neckY - 20,  cx + neckW/2, neckY);
+            ctx.bezierCurveTo(cx + neckW/2, neckY + 20,  cx + w/2, botY - 60,  cx + w/2, botY);
+            // 下端
+            ctx.lineTo(cx - w/2, botY);
+            // 左側の曲線
+            ctx.bezierCurveTo(cx - w/2, botY - 60,  cx - neckW/2, neckY + 20,  cx - neckW/2, neckY);
+            ctx.bezierCurveTo(cx - neckW/2, neckY - 20,  cx - w/2, topY + 60,  cx - w/2, topY);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 初期化：キャンバス上に太い青枠を描き、内側の空洞座標（sandMask）を算出する
+        function initMask() {
+            // 背景黒
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 200, 300);
+            
+            // 外側の太い青枠（画像に忠実な純青 #0000ff）
+            ctx.fillStyle = '#0000ff';
+            drawGlassShape(ctx, 32);
+            
+            // 内側を黒でくり抜く
+            ctx.fillStyle = '#000000';
+            drawGlassShape(ctx, 0);
+
+            const imgData = ctx.getImageData(0, 0, 200, 300).data;
+            
+            // 各Y行ごとに、内側の空間（黒い部分）のX座標範囲を特定する
+            for(let y = 0; y < 300; y++) {
+                let left = 100, right = 100;
+                
+                // くびれ部分（隙間なし）の場合はスキップ
+                if (imgData[(y * 200 + 100) * 4 + 2] > 128) {
+                    sandMask[y] = null;
+                    continue;
+                }
+                
+                // 中央(100)から左右に青枠にぶつかるまで探索
+                while(left > 0 && imgData[(y * 200 + left) * 4 + 2] < 128) left--;
+                while(right < 199 && imgData[(y * 200 + right) * 4 + 2] < 128) right++;
+                
+                // ガラス内部のみに限定（上下の余白は除く）
+                if (y < 30 || y > 270) {
+                    sandMask[y] = null;
+                } else {
+                    // 青枠に隣接しないよう2ピクセル縮める
+                    sandMask[y] = { l: left + 2, r: right - 2 };
+                }
+            }
+        }
+
+        // 毎フレームの描画＆計算ループ
+        function update() {
+            const now = new Date();
+            
+            // 1. タスクバーの時計を現在時刻に更新
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('taskbar-clock').textContent = `${hh}:${mm}`;
+
+            // 2. 本家と同じ「年月日・時分秒」の経過差分計算
+            let y = now.getFullYear() - SINCE_DATE.getFullYear();
+            let m = now.getMonth() - SINCE_DATE.getMonth();
+            let d = now.getDate() - SINCE_DATE.getDate();
+            let h = now.getHours() - SINCE_DATE.getHours();
+            let i = now.getMinutes() - SINCE_DATE.getMinutes();
+            let s = now.getSeconds() - SINCE_DATE.getSeconds();
+
+            if (s < 0) { s += 60; i--; }
+            if (i < 0) { i += 60; h--; }
+            if (h < 0) { h += 24; d--; }
+            if (d < 0) {
+                const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                d += prevMonth.getDate();
+                m--;
+            }
+            if (m < 0) { m += 12; y--; }
+
+            // UIテキスト更新
+            document.getElementById('val-y').textContent = y;
+            document.getElementById('val-m').textContent = m;
+            document.getElementById('val-d').textContent = d;
+            document.getElementById('val-h').textContent = h;
+            document.getElementById('val-i').textContent = i;
+            document.getElementById('val-s').textContent = s;
+
+            // 3. 10年周期での砂時計の進捗率（0.0 〜 1.0）
+            const elapsedMs = now.getTime() - SINCE_DATE.getTime();
+            const tenYearsMs = 10 * 365.2425 * 24 * 60 * 60 * 1000;
+            const progress = (elapsedMs % tenYearsMs) / tenYearsMs;
+            
+            // 4. 砂時計の描画実行
+            renderHourglass(progress);
+            
+            requestAnimationFrame(update);
+        }
+
+        // 砂時計のドット描画（ディザリングノイズ）
+        function renderHourglass(progress) {
+            // ベース描画の復元（青枠と黒背景）
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 200, 300);
+            ctx.fillStyle = '#0000ff';
+            drawGlassShape(ctx, 32);
+            ctx.fillStyle = '#000000';
+            drawGlassShape(ctx, 0);
+
+            // 砂の表面のY座標（進捗に応じて上下する）
+            const topY = 35 + (145 - 35) * progress;     // 上部の砂は下がる
+            const peakY = 265 - (265 - 155) * progress;  // 下部の砂は上がる
+
+            ctx.fillStyle = '#ffffff';
+            
+            // 画像の粗いドット感を出すため2ピクセル刻みでスキャン
+            for (let y = 30; y < 270; y += 2) {
+                if (!sandMask[y]) continue;
+                let {l, r} = sandMask[y];
+                
+                for (let x = l; x <= r; x += 2) {
+                    let drawSand = false;
+                    
+                    if (y < 150) {
+                        // 上半分の砂（表面は水平）
+                        if (y > topY) drawSand = true;
+                    } else {
+                        // 下半分の砂（中央が盛り上がる三角の山）
+                        let slope = peakY + Math.abs(x - 100) * 0.55;
+                        if (y > slope) drawSand = true;
+                    }
+                    
+                    // 白いピクセルをランダムに間引いてディザリング（ノイズ）表現
+                    if (drawSand && Math.random() > 0.25) {
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                }
+            }
+
+            // 落ちる砂の糸（10年満了時以外）
+            if (progress < 1.0) {
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([2, 4]); // 破線
+                ctx.lineDashOffset = -Date.now() / 30; // パラパラと落ちるアニメーション
+                ctx.beginPath();
+                ctx.moveTo(100, 150);
+                ctx.lineTo(100, peakY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        // アプリケーション起動
+        window.onload = () => {
+            initMask();
+            update();
+        };
+    </script>
+</body>
+</html>
+
+
+```
+  
